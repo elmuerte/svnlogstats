@@ -76,7 +76,11 @@ public class SvnLog {
 
 	protected DiffState diffState;
 
+	protected boolean explodeIssues = true;
+
 	protected CSVPrinter output;
+
+	protected boolean outputHeader = true;
 
 	protected ParseState state = ParseState.NEW;
 
@@ -100,7 +104,9 @@ public class SvnLog {
 
 	public void exec(String[] aArgs) throws ExecuteException, IOException {
 		output = new CSVPrinter(System.out, CSVFormat.RFC4180);
-		printHeader(); // TODO: make optional
+		if (outputHeader) {
+			printHeader();
+		}
 
 		CommandLine cmd = new CommandLine("svn");
 		cmd.addArgument("log");
