@@ -66,6 +66,21 @@ public class SvnLog {
 
 	private static final Logger LOG = LoggerFactory.getLogger(SvnLog.class);
 
+	static {
+		CODE_FILE_EXT = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+		CODE_FILE_EXT.add("java");
+		CODE_FILE_EXT.add("js");
+		CODE_FILE_EXT.add("xml");
+		CODE_FILE_EXT.add("jsp");
+		CODE_FILE_EXT.add("html");
+		CODE_FILE_EXT.add("sql");
+	}
+
+	public static void main(String[] args) throws Exception {
+		SvnLog svnlog = new SvnLog();
+		svnlog.exec(args);
+	}
+
 	protected StringBuilder commentBuffer;
 
 	protected int commentLines;
@@ -84,22 +99,7 @@ public class SvnLog {
 
 	protected ParseState state = ParseState.NEW;
 
-	static {
-		CODE_FILE_EXT = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-		CODE_FILE_EXT.add("java");
-		CODE_FILE_EXT.add("js");
-		CODE_FILE_EXT.add("xml");
-		CODE_FILE_EXT.add("jsp");
-		CODE_FILE_EXT.add("html");
-		CODE_FILE_EXT.add("sql");
-	}
-
 	public SvnLog() {
-	}
-
-	public static void main(String[] args) throws Exception {
-		SvnLog svnlog = new SvnLog();
-		svnlog.exec(args);
 	}
 
 	public void exec(String[] aArgs) throws ExecuteException, IOException {
