@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -23,13 +25,13 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 
 	protected CSVPrinter output;
 
-	public CsvRevisionReporter(Appendable aOutput, Configuration aConfig) throws RevisionReporterException {
+	public CsvRevisionReporter(@Nonnull Appendable aOutput, @Nonnull Configuration aConfig) throws RevisionReporterException {
 		super(aConfig);
 		output = createOutput(aOutput);
 	}
 
 	@Override
-	public void report(Revision aRevision) throws RevisionReporterException {
+	public void report(@Nonnull Revision aRevision) throws RevisionReporterException {
 		Object[] entry = createEntry(aRevision);
 
 		try {
@@ -43,7 +45,8 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		}
 	}
 
-	protected Object[] createEntry(Revision aRevision) {
+	@Nonnull
+	protected Object[] createEntry(@Nonnull Revision aRevision) {
 		List<Object> entry = new ArrayList<>();
 
 		entry.add(aRevision.getId());
@@ -86,7 +89,7 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		return entry.toArray();
 	}
 
-	protected CSVPrinter createOutput(Appendable aOutput) throws RevisionReporterException {
+	protected CSVPrinter createOutput(@Nonnull Appendable aOutput) throws RevisionReporterException {
 		try {
 			return new CSVPrinter(aOutput, getCsvFormat());
 		} catch (IOException e) {
@@ -94,6 +97,7 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		}
 	}
 
+	@Nonnull
 	protected CSVFormat getCsvFormat() {
 		CSVFormat format = CSVFormat.valueOf(config.getString("csv.format", CSVFormat.Predefined.RFC4180.name()));
 		if (config.getBoolean("csv.withheader", true)) {
@@ -102,6 +106,7 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		return format;
 	}
 
+	@Nonnull
 	protected String[] getHeader() {
 		List<String> header = new ArrayList<>();
 
@@ -147,7 +152,7 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		normalizeIssues = config.getBoolean("csv.normalize.issues", false);
 	}
 
-	protected void reportNormalized(Revision aRevision, Object[] entry) throws IOException {
+	protected void reportNormalized(@Nonnull Revision aRevision, @Nonnull Object[] entry) throws IOException {
 		output.print("Main");
 		output.printRecord(entry);
 		for (String issue : aRevision.getIssues()) {

@@ -41,7 +41,7 @@ public class Revision {
 
 	public void addFileChange(FileChange aFileChange) {
 		if (fileChanges.containsKey(aFileChange.getFilename())) {
-			// TODO: error
+			// TODO: error because duplicate
 		}
 		fileChanges.put(aFileChange.getFilename(), aFileChange);
 	}

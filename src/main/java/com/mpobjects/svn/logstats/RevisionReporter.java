@@ -1,7 +1,9 @@
 package com.mpobjects.svn.logstats;
 
+import javax.annotation.Nonnull;
+
 import com.mpobjects.svn.logstats.model.Revision;
 
 public interface RevisionReporter {
-	void report(Revision aRevision) throws RevisionReporterException;
+	void report(@Nonnull Revision aRevision) throws RevisionReporterException;
 }

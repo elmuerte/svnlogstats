@@ -1,10 +1,13 @@
 package com.mpobjects.svn.logstats.model;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.commons.lang3.StringUtils;
 
 public enum ChangeType {
 	ADDED('A'), DELETED('D'), MODIFIED('M'), REPLACED('R');
 
+	@CheckForNull
 	public static final ChangeType get(char aCode) {
 		switch (aCode) {
 			case 'A':
@@ -19,6 +22,7 @@ public enum ChangeType {
 		return null;
 	}
 
+	@CheckForNull
 	public static final ChangeType get(String aCode) {
 		if (StringUtils.length(aCode) != 1) {
 			return null;
