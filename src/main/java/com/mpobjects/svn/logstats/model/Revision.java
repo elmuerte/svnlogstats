@@ -140,6 +140,7 @@ public class Revision {
 		sb.append("timestamp", timestamp);
 		sb.append("mergeStatus", mergeStatus);
 		sb.append("projects", projects);
+		sb.append("issues", issues);
 		sb.append("no. files", fileChanges.size());
 		return sb.toString();
 	}

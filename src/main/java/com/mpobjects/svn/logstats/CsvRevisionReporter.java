@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.mpobjects.svn.logstats.model.ChangeType;
@@ -18,8 +19,8 @@ import com.mpobjects.svn.logstats.model.Revision;
 
 public class CsvRevisionReporter extends AbstractRevisionReporter {
 
-	private static final int IDX_ISSUES = 0;
-	private static final int IDX_PROJECTS = 0;
+	private static final int IDX_ISSUES = 7;
+	private static final int IDX_PROJECTS = 8;
 
 	protected boolean normalizeIssues;
 
@@ -31,7 +32,17 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 	}
 
 	@Override
+	public void flush() throws RevisionReporterException {
+		try {
+			output.flush();
+		} catch (IOException e) {
+			throw new RevisionReporterException("Failure writing CSV record.", e);
+		}
+	}
+
+	@Override
 	public void report(@Nonnull Revision aRevision) throws RevisionReporterException {
+		super.report(aRevision);
 		Object[] entry = createEntry(aRevision);
 
 		try {
@@ -57,14 +68,14 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 
 		entry.add(aRevision.getMergeStatus());
 		// Not completely reliable, large than 0 is not a valid criteria
-		if (aRevision.getFileChanges().values().stream().filter(c -> !c.isInManifest()).count() > 0) {
+		if (isBranchActions(aRevision)) {
 			entry.add("TRUE");
 		} else {
 			entry.add("FALSE");
 		}
 
-		entry.add(StringUtils.join(aRevision.getProjects(), ','));
 		entry.add(StringUtils.join(aRevision.getIssues(), ','));
+		entry.add(StringUtils.join(aRevision.getProjects(), ','));
 
 		entry.add(aRevision.getFileChanges(ChangeType.ADDED).count());
 		entry.add(aRevision.getFileChanges(ChangeType.DELETED).count());
@@ -101,7 +112,7 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 	protected CSVFormat getCsvFormat() {
 		CSVFormat format = CSVFormat.valueOf(config.getString("csv.format", CSVFormat.Predefined.RFC4180.name()));
 		if (config.getBoolean("csv.withheader", true)) {
-			format.withHeader(getHeader());
+			format = format.withHeader(getHeader());
 		}
 		return format;
 	}
@@ -153,16 +164,25 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 	}
 
 	protected void reportNormalized(@Nonnull Revision aRevision, @Nonnull Object[] entry) throws IOException {
-		output.print("Main");
-		output.printRecord(entry);
+		output.printRecord(ArrayUtils.add(entry, 0, "Combined"));
+		// Report per project
+		for (String project : aRevision.getProjects()) {
+			entry[IDX_ISSUES] = StringUtils
+					.join(aRevision.getIssues().stream().filter(i -> i.replaceFirst(projectPattern.pattern(), "$1").equals(project)).iterator(), ',');
+			entry[IDX_PROJECTS] = project;
+			output.printRecord(ArrayUtils.add(entry, 0, "Project"));
+		}
+		// Report per issue
 		for (String issue : aRevision.getIssues()) {
 			entry[IDX_ISSUES] = issue;
 			if (projectPattern != null) {
 				entry[IDX_PROJECTS] = projectPattern.matcher(issue).replaceFirst("$1");
 			}
-			output.print("Main");
-			output.printRecord(entry);
+			output.printRecord(ArrayUtils.add(entry, 0, "Issue"));
 		}
 	}
 
+	private boolean isBranchActions(Revision aRevision) {
+		return aRevision.getFileChanges().values().stream().filter(c -> !c.isInManifest()).count() > 0;
+	}
 }

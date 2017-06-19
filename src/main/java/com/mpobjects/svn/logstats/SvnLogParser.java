@@ -75,6 +75,11 @@ public class SvnLogParser {
 
 	public void flush() {
 		reportCurrentRevision();
+		try {
+			reporter.flush();
+		} catch (RevisionReporterException e) {
+			LOG.error("Error reporting revision.", e);
+		}
 	}
 
 	public void parse(String aLine) {

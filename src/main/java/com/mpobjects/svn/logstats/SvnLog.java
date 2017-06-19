@@ -1,5 +1,9 @@
 package com.mpobjects.svn.logstats;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.exec.CommandLine;
@@ -33,6 +37,7 @@ public class SvnLog {
 		LOG.debug("Cmd: {}", cmd);
 
 		final Configuration config = new Configurations().properties("settings.properties");
+
 		final RevisionReporter reporter = createReporter(config);
 		final SvnLogParser parser = new SvnLogParser(reporter);
 
@@ -47,8 +52,12 @@ public class SvnLog {
 		parser.flush();
 	}
 
-	private RevisionReporter createReporter(Configuration aConfig) {
-		// TODO Auto-generated method stub
+	private RevisionReporter createReporter(Configuration aConfig) throws FileNotFoundException, RevisionReporterException {
+		// this clearly needs to become better
+		final String fmt = aConfig.getString("output.format", "csv");
+		if ("csv".equals(fmt)) {
+			return new CsvRevisionReporter(new PrintWriter(new File(aConfig.getString("output", "output.csv"))), aConfig);
+		}
 		return null;
 	}
 
