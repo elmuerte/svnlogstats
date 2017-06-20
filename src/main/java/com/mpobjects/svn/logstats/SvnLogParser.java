@@ -28,6 +28,8 @@ public class SvnLogParser {
 		COMMENT, DIFF, DIFF_PROPS, ENTRY, NEW, PATHS;
 	}
 
+	private static final String DIFF_BIN = "Cannot display: file marked as a binary type.";
+
 	private static final String DIFF_INDEX = "Index: ";
 
 	private static final Pattern DIFF_INDEX_PATTERN = Pattern.compile("^" + DIFF_INDEX + "(.*)");
@@ -36,7 +38,7 @@ public class SvnLogParser {
 
 	private static final Pattern DIFF_PROPS_INDEX_PATTERN = Pattern.compile("^" + DIFF_PROPS_INDEX + "(.*)");
 
-	private static final Pattern FILE_COPY = Pattern.compile("(.*)( \\(from .*:[0-9]+\\))");
+	private static final Pattern FILE_COPY = Pattern.compile("(.*)( \\(from (.*):([0-9]+)\\))");
 
 	private static final Pattern FILE_ENTRY = Pattern.compile("^   ([ADMR]) /(.*)");
 
@@ -138,6 +140,8 @@ public class SvnLogParser {
 				diffState.del = 0;
 			}
 			return true;
+		} else if (aLine.equals(DIFF_BIN)) {
+			currentFileChange.setBinary(true);
 		}
 
 		return false;
@@ -281,6 +285,10 @@ public class SvnLogParser {
 				filename = m2.group(1);
 			}
 			FileChange chng = new FileChange(filename, ChangeType.get(matcher.group(1)));
+			if (m2.matches()) {
+				chng.setFromPath(m2.group(3));
+				chng.setFromRevision(NumberUtils.toInt(m2.group(4)));
+			}
 			currentRevision.addFileChange(chng);
 		} else {
 			LOG.error("Garbage path entry: {}", aLine);

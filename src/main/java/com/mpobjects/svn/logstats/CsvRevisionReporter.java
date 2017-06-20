@@ -2,8 +2,12 @@ package com.mpobjects.svn.logstats;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -182,7 +186,39 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		}
 	}
 
+	/**
+	 * Try to determine if it was a branch action (create, delete, move)
+	 *
+	 * @param aRevision
+	 * @return
+	 */
 	private boolean isBranchActions(Revision aRevision) {
-		return aRevision.getFileChanges().values().stream().filter(c -> !c.isInManifest()).count() > 0;
+		final Set<FileChange> manifest = aRevision.getFileChanges().values().stream().filter(c -> c.isInManifest()).collect(Collectors.toSet());
+		if (manifest.size() == aRevision.getFileChanges().size()) {
+			// everything was known, can't be a branch action
+			return false;
+		}
+		if (manifest.size() != manifest.stream()
+				.filter(c -> c.getLinesChanged() == 0 && !c.isBinary() && (!c.getChangeType().equals(ChangeType.ADDED) || c.getFromRevision() > 0)).count()) {
+			// not all are directories
+			// or not copied from
+			return false;
+		}
+
+		Iterator<FileChange> it = aRevision.getFileChanges().values().stream().filter(c -> !c.isInManifest()).iterator();
+		while (it.hasNext()) {
+			final FileChange change = it.next();
+			Optional<FileChange> manEntry = manifest.stream()
+					.filter(e -> change.getFilename().startsWith(e.getFilename()) && change.getChangeType().equals(e.getChangeType())).findFirst();
+			if (!manEntry.isPresent()) {
+				// non-manifest entry was not in the manifest with the same change type
+				return false;
+			}
+			// Keep count?
+		}
+
+		// at this point, it might be a branch action
+		// TODO: branch creation looks ok, deleting gives false positives (e.g. 28040)
+		return true;
 	}
 }

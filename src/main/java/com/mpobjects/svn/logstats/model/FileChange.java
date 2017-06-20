@@ -4,6 +4,9 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 public class FileChange {
+
+	protected boolean binary;
+
 	protected ChangeType changeType;
 
 	protected String filename;
@@ -57,8 +60,16 @@ public class FileChange {
 		return linesRemoved;
 	}
 
+	public boolean isBinary() {
+		return binary;
+	}
+
 	public boolean isInManifest() {
 		return inManifest;
+	}
+
+	public void setBinary(boolean aBinary) {
+		binary = aBinary;
 	}
 
 	public void setFromPath(String aFromPath) {
