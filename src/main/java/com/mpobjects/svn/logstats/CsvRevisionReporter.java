@@ -2,8 +2,11 @@ package com.mpobjects.svn.logstats;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -16,6 +19,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableInt;
 
 import com.mpobjects.svn.logstats.model.ChangeType;
 import com.mpobjects.svn.logstats.model.FileChange;
@@ -25,6 +29,8 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 
 	private static final int IDX_ISSUES = 7;
 	private static final int IDX_PROJECTS = 8;
+
+	protected Set<String> branchPaths;
 
 	protected boolean normalizeIssues;
 
@@ -165,6 +171,12 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 	protected void initConfig() {
 		super.initConfig();
 		normalizeIssues = config.getBoolean("csv.normalize.issues", false);
+		branchPaths = new HashSet<>();
+		for (String pattern : config.getList(String.class, "branchpath", Collections.emptyList())) {
+			// very basic, not ant-pattern like
+			pattern = pattern.replace("*", "[^/]*");
+			branchPaths.add("^" + pattern + "$");
+		}
 	}
 
 	protected void reportNormalized(@Nonnull Revision aRevision, @Nonnull Object[] entry) throws IOException {
@@ -205,6 +217,12 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 			return false;
 		}
 
+		// validate manifest entries to be all in branch path patterns
+		if (!manifest.stream().allMatch(c -> branchPaths.stream().anyMatch(p -> c.getFilename().matches(p)))) {
+			return false;
+		}
+
+		final Map<FileChange, MutableInt> counts = manifest.stream().collect(Collectors.toMap(f -> f, f -> new MutableInt()));
 		Iterator<FileChange> it = aRevision.getFileChanges().values().stream().filter(c -> !c.isInManifest()).iterator();
 		while (it.hasNext()) {
 			final FileChange change = it.next();
@@ -212,13 +230,33 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 					.filter(e -> change.getFilename().startsWith(e.getFilename()) && change.getChangeType().equals(e.getChangeType())).findFirst();
 			if (!manEntry.isPresent()) {
 				// non-manifest entry was not in the manifest with the same change type
+				// thus not a branching action
 				return false;
 			}
-			// Keep count?
+			counts.get(manEntry.get()).increment();
 		}
 
-		// at this point, it might be a branch action
-		// TODO: branch creation looks ok, deleting gives false positives (e.g. 28040)
+		// a branch creation manifest looks like this:
+		// A /new/branch (from /old/branch:number)
+		// TODO
+
+		// a move manifest looks like this
+		// A /new/branch (from /old/branch:number)
+		// D /old/branch
+		// if (manifest.size()
+		// / 2 == manifest.stream()
+		// .filter(c -> ChangeType.ADDED.equals(c.getChangeType())
+		// && manifest.stream().anyMatch(o -> ChangeType.DELETED.equals(o.getChangeType()) &&
+		// o.getFilename().equals(c.getFromPath())))
+		// .count()) {
+		// // This is a directory move operation.
+		// return true;
+		// }
+
+		// a branch deletion manifest looks like this:
+		// D /old/branch
+		// TODO
+
 		return true;
 	}
 }

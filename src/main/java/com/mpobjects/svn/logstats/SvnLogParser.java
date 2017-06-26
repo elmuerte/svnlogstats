@@ -38,7 +38,7 @@ public class SvnLogParser {
 
 	private static final Pattern DIFF_PROPS_INDEX_PATTERN = Pattern.compile("^" + DIFF_PROPS_INDEX + "(.*)");
 
-	private static final Pattern FILE_COPY = Pattern.compile("(.*)( \\(from (.*):([0-9]+)\\))");
+	private static final Pattern FILE_COPY = Pattern.compile("(.*)( \\(from /(.*):([0-9]+)\\))");
 
 	private static final Pattern FILE_ENTRY = Pattern.compile("^   ([ADMR]) /(.*)");
 
