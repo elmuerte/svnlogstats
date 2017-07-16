@@ -54,6 +54,8 @@ public abstract class AbstractRevisionReporter implements RevisionReporter {
 
 	protected Pattern issuePattern;
 
+	protected List<Pattern> notAnIssuePatterns;
+
 	protected Pattern projectPattern;
 
 	public AbstractRevisionReporter(@Nonnull Configuration aConfig) {
@@ -80,6 +82,10 @@ public abstract class AbstractRevisionReporter implements RevisionReporter {
 				continue;
 			}
 			fileGroups.add(loadFileGroup(groupId.trim()));
+		}
+		notAnIssuePatterns = new ArrayList<>();
+		for (String pattern : config.getList(String.class, "pattern.no-issue", Collections.emptyList())) {
+			notAnIssuePatterns.add(Pattern.compile(pattern));
 		}
 	}
 
@@ -108,6 +114,9 @@ public abstract class AbstractRevisionReporter implements RevisionReporter {
 		Matcher matcher = issuePattern.matcher(aRevision.getComment());
 		while (matcher.find()) {
 			final String issue = matcher.group(1);
+			if (notAnIssuePatterns.stream().anyMatch(p -> p.matcher(issue).matches())) {
+				continue;
+			}
 			aRevision.getIssues().add(issue);
 			if (projectPattern != null) {
 				Matcher projMatcher = projectPattern.matcher(issue);
@@ -117,5 +126,4 @@ public abstract class AbstractRevisionReporter implements RevisionReporter {
 			}
 		}
 	}
-
 }

@@ -36,7 +36,7 @@ public class SvnLog {
 
 		LOG.debug("Cmd: {}", cmd);
 
-		final Configuration config = new Configurations().properties("settings.properties");
+		final Configuration config = new Configurations().properties(System.getProperty("settings", "settings.properties"));
 
 		final RevisionReporter reporter = createReporter(config);
 		final SvnLogParser parser = new SvnLogParser(reporter);
