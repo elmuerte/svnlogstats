@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -29,6 +31,8 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 
 	private static final int IDX_ISSUES = 7;
 	private static final int IDX_PROJECTS = 8;
+
+	protected Set<Pattern> branchNames;
 
 	protected Set<String> branchPaths;
 
@@ -87,6 +91,8 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		entry.add(StringUtils.join(aRevision.getIssues(), ','));
 		entry.add(StringUtils.join(aRevision.getProjects(), ','));
 
+		entry.add(determineBranchName(aRevision));
+
 		entry.add(aRevision.getFileChanges(ChangeType.ADDED).count());
 		entry.add(aRevision.getFileChanges(ChangeType.DELETED).count());
 		entry.add(aRevision.getFileChanges(ChangeType.MODIFIED).count());
@@ -118,6 +124,23 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		}
 	}
 
+	protected String determineBranchName(Revision aRevision) {
+		String commonPrefix = StringUtils.getCommonPrefix(aRevision.getFileChanges().keySet().toArray(new String[0]));
+		if (!StringUtils.isBlank(commonPrefix)) {
+			if (commonPrefix.startsWith("trunk")) {
+				return "trunk";
+			} else {
+				for (Pattern pat : branchNames) {
+					Matcher match = pat.matcher(commonPrefix);
+					if (match.matches()) {
+						return match.group(1);
+					}
+				}
+			}
+		}
+		return "?unknown?";
+	}
+
 	@Nonnull
 	protected CSVFormat getCsvFormat() {
 		CSVFormat format = CSVFormat.valueOf(config.getString("csv.format", CSVFormat.Predefined.RFC4180.name()));
@@ -147,6 +170,8 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 		header.add("Issues");
 		header.add("Projects");
 
+		header.add("Branch Name");
+
 		header.add("Files Added");
 		header.add("Files Removed");
 		header.add("Files Modified");
@@ -171,11 +196,14 @@ public class CsvRevisionReporter extends AbstractRevisionReporter {
 	protected void initConfig() {
 		super.initConfig();
 		normalizeIssues = config.getBoolean("csv.normalize.issues", false);
+		List<String> paths = config.getList(String.class, "branchpath", Collections.emptyList());
 		branchPaths = new HashSet<>();
-		for (String pattern : config.getList(String.class, "branchpath", Collections.emptyList())) {
+		branchNames = new HashSet<>();
+		for (String pattern : paths) {
 			// very basic, not ant-pattern like
 			pattern = pattern.replace("*", "[^/]*");
 			branchPaths.add("^" + pattern + "$");
+			branchNames.add(Pattern.compile("^(" + pattern + ")(/.*)?$"));
 		}
 	}
 
